@@ -1,0 +1,166 @@
+Final Konfirmasi Requirement:
+
+Satu aplikasi desktop Python dengan PyQt5
+Role-based menu: Admin, Manager, Gudang, Kasir
+Central (Pusat): MariaDB utama
+Outlet (3 outlet): Bisa tambah Outlet
+Transaksi penjualan pakai SQLite (offline friendly)
+MariaDB hanya untuk proses mutasi stok & monitoring realtime oleh pusat
+
+Multi OS support (Windows, Linux, MacOS)
+Tailscale untuk koneksi antar server
+Mutasi stok dengan kode unik + cetak Surat Jalan
+Update stok & harga otomatis saat outlet terima barang
+
+Ringkasan Print Struk Thermal:
+
+Kasir harus bisa print struk ke thermal printer 58mm & 80mm.
+Di Linux (Debian): pakai python-escpos + metode USB (VID + PID).
+Harus Multi OS: Windows, Linux, macOS.
+Integrasi dengan PyQt5.
+
+Rekomendasi Solusi Cross-Platform (Best Practice 2026)
+1. Library Utama: python-escpos (paling powerful untuk ESC/POS)
+Support text, table, barcode, QR, logo, cut paper, dll.
+Support paper width 58mm & 80mm via profile.
+Linux: Paling stabil (VID/PID + pyusb).
+Windows: Bisa, tapi butuh setup tambahan (install libusb + Zadig ganti driver).
+macOS: Bisa via USB atau Network.
+
+2. Fallback Mechanism (Paling Aman)
+Aku akan buat class printer yang otomatis detect OS dan pilih metode terbaik:
+Linux → Direct USB (python-escpos)
+Windows → python-escpos (jika driver OK) atau fallback ke win32print + raw ESC/POS
+macOS → python-escpos atau CUPS
+
+3. Opsi Tambahan
+User bisa pilih printer di setting (list semua printer yang terdeteksi).
+Simpan setting VID/PID + paper width (58/80) per outlet.
+
+Filosofi Desain UI (PyQt5)
+Modern & Clean: Sidebar kiri (collapsible), dark/light mode, card-based layout, flat design dengan sedikit shadow.
+Fast Operation: Tombol besar untuk kasir (touch friendly), hotkeys support, search everywhere.
+Role-based Dynamic Menu: Menu berubah otomatis sesuai role (Admin paling lengkap, Kasir paling ringkas).
+Responsive: Layout pakai QSplitter, QTabWidget, dan Grid Layout agar nyaman di berbagai ukuran layar (laptop outlet sampai PC pusat).
+Multi OS Ready: Font system + icon dari QIcon (bisa pakai Material Icons atau custom).
+Bottom Status Bar: Stok rendah alert, Printer status, Offline/Online indicator
+
+Fitur & Flow yang Bagus Ditambahkan:
+
+Shift Management (Sangat penting untuk kasir)
+Buka Shift (input saldo awal kas)
+Tutup Shift (hitung fisik vs sistem, cetak laporan shift)
+Kasir hanya bisa transaksi kalau shift sedang aktif
+
+Hold / Draft Bill
+Bisa simpan transaksi sementara (banyak pelanggan nunggu)
+Recall bill dengan nomor atau nama customer
+
+Quick Search & Hot Product
+Search barang by kode, nama, atau barcode
+Grid barang terlaris / favorit di halaman POS (bisa di-scroll cepat)
+
+Multi Payment
+Cash, QRIS, Transfer, Debit/Kredit, Hutang (khusus member),
+
+Audit & Keamanan
+Log setiap aksi penting (ubah harga, hapus item, retur, adjustment stok)
+
+Sync & Offline Handling
+Auto sync setiap 30 detik atau saat koneksi balik
+Indicator jelas: 🟢 Online | 🟡 Syncing | 🔴 Offline
+Queue mutasi & transaksi yang pending
+
+Lainnya yang Standar:
+Backup otomatis harian (SQLite + MariaDB dump)
+User activity log
+Reset password + hak akses granular
+Export semua laporan ke Excel + PDF
+Tampilan ringkasan dashboard per outlet (untuk pusat)
+
+UI/UX Improvement:
+Gunakan warna tombol jelas: Hijau untuk Simpan/Terima, Merah untuk Batal/Hapus, Biru untuk Cetak
+Konfirmasi dialog penting (double confirmation untuk retur, delete, mutasi)
+Font besar di bagian POS (harga, total, qty)
+Dark theme dengan accent color (misal biru cyan atau hijau neon biar adem)
+
+Teknis Tambahan:
+Gunakan QThread untuk sync database biar UI tidak freeze
+Error handling bagus + logging ke file
+Support barcode scanner (auto focus ke input)
+
+POS Kasir Mode: Keyboard First (Minim Mouse)
+
+Semua proses utama bisa dilakukan hanya pakai keyboard
+Barcode scanner support penuh (auto focus + auto add item)
+Hotkeys lengkap & intuitif
+Enter sebagai tombol utama confirm
+Arrow keys untuk navigasi daftar barang/keranjang
+Minim sekali klik mouse
+
+Hotkeys yang aku rencanakan untuk POS Kasir:
+F1 → Tambah barang manual (fokus ke search)
+F2 → Edit quantity item terpilih
+F3 → Diskon per item
+F4 → Diskon transaksi keseluruhan
+F5 → Hold / Simpan Draft Bill
+F6 → Recall Draft Bill
+F8 → Bayar / Checkout
+F9 → Cetak Struk Ulang
+F10 → Retur Mode
+Esc → Batal / Clear input
+Ctrl + Delete → Hapus item terpilih
+Ctrl + S → Simpan transaksi
+Ctrl + P → Cetak struk
+Enter → Confirm (add item, confirm payment, dll)
+Search barang otomatis fokus saat buka POS, dan mendukung scan barcode langsung.
+
+saran tambahan kecil lagi dari aku:
+Payment Shortcut di layar kasir:
+F7 → Cash (langsung input nominal)
+Ctrl + Q → QRIS / Non-tunai
+Ctrl + H → Hutang (khusus member)
+Quantity cepat: Ketik angka langsung di search → Enter = qty tersebut (contoh: ketik 5 Enter di barang → otomatis qty 5)
+Sound feedback kecil (beep) saat scan barcode berhasil atau error.
+Double Enter Protection di critical action (misal saat bayar) untuk hindari salah tekan.
+
+detail metode koneksi database :
+Pusat = Super User (bisa monitor semua outlet realtime)
+Pusat bisa pilih outlet mana yang mau dimonitor
+Transaksi kasir di outlet pakai SQLite (offline-first)
+MariaDB dipakai untuk mutasi stok + monitoring pusat
+Jaringan pakai Tailscale (sudah aman & stabil)
+SQL query sebisa mungkin compatible antara SQLite & MariaDB
+
+Rekomendasi Arsitektur Database (Best & Secure)
+1. Dual Database per Outlet
+SQLite (Local di mesin outlet) → Untuk transaksi harian (penjualan ecer/grosir, retur, hutang member). Sangat cepat & tidak butuh koneksi.
+MariaDB Local (di setiap outlet) → Untuk mutasi stok, sync data master (produk, harga, customer), dan reporting ke pusat.
+MariaDB Central (di server pusat) → Master database, aggregator semua outlet.
+
+Komponen			Database			Koneksi Via			Tujuan
+--------------------------------------------------------------------------------------
+Outlet (Kasir)		SQLite				Local file			Transaksi cepat & offline
+Outlet				MariaDB Local		localhost 			Mutasi & sync
+Pusat				MariaDB Central		Local				Master data
+Pusat ke Outlet		MariaDB Outlet		Tailscale IP		Monitoring realtime
+
+Sync Strategy (Realtime-ish)
+Outlet akan push data penting (transaksi, mutasi terima, stok opname) ke MariaDB Local-nya.
+Pusat akan pull data dari MariaDB tiap outlet via Tailscale IP (polling setiap 5-10 detik atau pakai long polling).
+Untuk mutasi stok: Pusat tulis ke MariaDB Outlet target langsung via Tailscale.
+Master data (produk, harga, customer) sync dari Pusat ke Outlet (bidirectional).
+
+Pusat punya list semua outlet + Tailscale IP-nya di table outlets
+Saat monitoring, pusat connect on-demand ke outlet yang dipilih
+Gunakan connection pool + timeout
+Error handling kuat (jika Tailscale down → tampilkan status "Outlet Offline")
+
+Semua table utama pakai id UUID 16 binary PRIMARY KEY
+Buat function helper generate_uuid() dan generate_kode()
+Buat DB Manager class yang clean untuk SQLite & MariaDB
+Query akan jauh lebih mirip antar database
+
+Pakai BINARY(16) bukan CHAR(36) untuk UUID (hemat space & lebih cepat).
+Buat index yang tepat di kolom yang sering dicari (transaction_id, outlet_id, tanggal, product_id).
+Tabel transaction_details akan jadi tabel terbesar → ini yang paling penting dioptimasi.
