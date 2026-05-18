@@ -20,7 +20,7 @@ def init_member_database():
     cursor.execute("CREATE TABLE IF NOT EXISTS master_member (id BLOB PRIMARY KEY)")
     cursor.execute("PRAGMA table_info(master_member)")
     kolom_master = [info[1] for info in cursor.fetchall()]
-    
+
     if "kode_member" not in kolom_master:
         cursor.execute("ALTER TABLE master_member ADD COLUMN kode_member TEXT NOT NULL DEFAULT ''")
     if "nama_member" not in kolom_master:
@@ -33,7 +33,7 @@ def init_member_database():
         cursor.execute("ALTER TABLE master_member ADD COLUMN ttl_hutang REAL NOT NULL DEFAULT 0.0")
     if "status_hutang" not in kolom_master:
         cursor.execute("ALTER TABLE master_member ADD COLUMN status_hutang TEXT NOT NULL DEFAULT 'LUNAS'")
-    
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS dethut_member (
             id BLOB PRIMARY KEY, member_id BLOB NOT NULL, tanggal TEXT NOT NULL, jenis_transaksi TEXT NOT NULL,
@@ -49,23 +49,41 @@ class FormMemberDialog(QDialog):
         super().__init__(parent)
         self.data_edit = data_edit 
         self.init_ui()
-        
+
     def init_ui(self):
-        self.setFont(get_font(10, bold=False))
-        self.setWindowTitle("✏️ Edit Data Member" if self.data_edit else "➕ Tambah Member Baru")
-        self.resize(400, 280)
+        is_edit = self.data_edit is not None
+        self.setWindowTitle("✏️ Edit Data Member" if is_edit else "➕ Tambah Member Baru")
         self.setModal(True)
-        
+        self.resize(420, 380)
         self.setStyleSheet("background-color: #f4f6f9;")
+
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(25, 25, 25, 25)
+        layout.setSpacing(12)
+
         form_layout = QFormLayout()
-        
+        form_layout.setSpacing(10)
+
         self.input_kode = QLineEdit(self)
+        self.input_kode.setPlaceholderText("Kode unik member")
+        self.input_kode.setStyleSheet(self._input_style())
+
         self.input_nama = QLineEdit(self)
+        self.input_nama.setPlaceholderText("Nama lengkap member")
+        self.input_nama.setStyleSheet(self._input_style())
+
         self.input_alamat = QLineEdit(self)
+        self.input_alamat.setPlaceholderText("Alamat lengkap")
+        self.input_alamat.setStyleSheet(self._input_style())
+
         self.input_telp = QLineEdit(self)
+        self.input_telp.setPlaceholderText("Nomor telepon")
+        self.input_telp.setStyleSheet(self._input_style())
+
         self.input_hutang_awal = QLineEdit(self)
-        
+        self.input_hutang_awal.setPlaceholderText("0")
+        self.input_hutang_awal.setStyleSheet(self._input_style())
+
         form_layout.addRow("🔑 Kode Member:", self.input_kode)
         form_layout.addRow("👤 Nama Member:", self.input_nama)
         form_layout.addRow("📍 Alamat:", self.input_alamat)
@@ -73,35 +91,68 @@ class FormMemberDialog(QDialog):
         if not self.data_edit:
             form_layout.addRow("💰 Hutang Awal (Rp):", self.input_hutang_awal)
         layout.addLayout(form_layout)
-        
+
         if self.data_edit:
             self.input_kode.setText(self.data_edit['kode_member'])
             self.input_kode.setReadOnly(True) 
+            self.input_kode.setStyleSheet(self._input_style() + "background-color: #f1f2f6;")
             self.input_nama.setText(self.data_edit['nama_member'])
             self.input_alamat.setText(self.data_edit['alamat_member'])
             self.input_telp.setText(self.data_edit['telepon_member'])
-            
+
+        layout.addStretch()
+
         btn_layout = QHBoxLayout()
         self.btn_simpan = QPushButton("💾 Simpan", self)
+        self.btn_simpan.setStyleSheet("""
+            QPushButton {
+                background-color: #2ecc71;
+                color: white;
+                font-weight: bold;
+                padding: 8px 16px;
+                border-radius: 6px;
+            }
+            QPushButton:hover { background-color: #27ae60; }
+        """)
         self.btn_batal = QPushButton("❌ Batal", self)
-        self.btn_simpan.setStyleSheet("background-color: #2ecc71; color: white; font-weight: bold; padding: 6px;")
-        self.btn_batal.setStyleSheet("background-color: #e74c3c; color: white; padding: 6px;")
+        self.btn_batal.setStyleSheet("""
+            QPushButton {
+                background-color: #e74c3c;
+                color: white;
+                padding: 8px 16px;
+                border-radius: 6px;
+            }
+            QPushButton:hover { background-color: #c0392b; }
+        """)
+        btn_layout.addStretch()
         btn_layout.addWidget(self.btn_simpan)
         btn_layout.addWidget(self.btn_batal)
         layout.addLayout(btn_layout)
-        
+
         self.btn_simpan.clicked.connect(self.proses_simpan)
         self.btn_batal.clicked.connect(self.reject)
-        
+
+    def _input_style(self):
+        return """
+            QLineEdit {
+                padding: 8px;
+                border: 1px solid #dcdde1;
+                border-radius: 4px;
+                background-color: white;
+                font-size: 12px;
+            }
+            QLineEdit:focus { border: 1px solid #3498db; }
+        """
+
     def proses_simpan(self):
         kode, nama, alamat, telp = self.input_kode.text().strip(), self.input_nama.text().strip(), self.input_alamat.text().strip(), self.input_telp.text().strip()
         if not kode or not nama:
             QMessageBox.warning(self, "Peringatan", "⚠️ Kode dan Nama Member wajib diisi!")
             return
-            
+
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        
+
         if self.data_edit:
             id_bin = self.data_edit['id']
             cursor.execute("UPDATE master_member SET nama_member=?, alamat_member=?, telepon_member=? WHERE id=?", (nama, alamat, telp, id_bin))
@@ -125,7 +176,7 @@ class FormMemberDialog(QDialog):
             cursor.execute("INSERT INTO master_member VALUES (?,?,?,?,?,?,?)", (id_bytes, kode, nama, alamat, telp, hutang_awal, status_awal))
             if hutang_awal > 0:
                 cursor.execute("INSERT INTO dethut_member VALUES (?,?,?,?,?,?,?)", (uuid.uuid4().bytes, id_bytes, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Hutang Awal", hutang_awal, 0.0, hutang_awal))
-                
+
         conn.commit()
         conn.close()
         self.accept()
@@ -136,14 +187,16 @@ class DetailHutangMemberDialog(QDialog):
         self.member_id, self.nama_mbr, self.kode_mbr = member_id, nama_mbr, kode_mbr
         self.init_ui()
         self.filter_data()
-        
+
     def init_ui(self):
         self.setWindowTitle(f"📜 Riwayat Kartu Hutang Member - {self.nama_mbr}")
         self.resize(750, 450)
         self.setFont(get_font(10, bold=False))
         self.setStyleSheet("background-color: #f4f6f9;")
         layout = QVBoxLayout(self)
-        
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
+
         filter_layout = QHBoxLayout()
         self.date_mulai = QDateEdit(self)
         self.date_mulai.setCalendarPopup(True)
@@ -151,12 +204,30 @@ class DetailHutangMemberDialog(QDialog):
         self.date_selesai = QDateEdit(self)
         self.date_selesai.setCalendarPopup(True)
         self.date_selesai.setDate(QDate.currentDate())
-        
+
         self.btn_filter = QPushButton("🔍 Filter", self)
         self.btn_preview = QPushButton("👁️ Preview PDF", self)
-        self.btn_filter.setStyleSheet("background-color: #34495e; color: white;")
-        self.btn_preview.setStyleSheet("background-color: #9b59b6; color: white;")
-        
+        self.btn_filter.setStyleSheet("""
+            QPushButton {
+                background-color: #34495e;
+                color: white;
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+            QPushButton:hover { background-color: #2c3e50; }
+        """)
+        self.btn_preview.setStyleSheet("""
+            QPushButton {
+                background-color: #9b59b6;
+                color: white;
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+            QPushButton:hover { background-color: #8e44ad; }
+        """)
+
         filter_layout.addWidget(QLabel("📅 Periode:"))
         filter_layout.addWidget(self.date_mulai)
         filter_layout.addWidget(QLabel("s/d"))
@@ -165,7 +236,7 @@ class DetailHutangMemberDialog(QDialog):
         filter_layout.addStretch()
         filter_layout.addWidget(self.btn_preview)
         layout.addLayout(filter_layout)
-        
+
         self.table = QTableWidget(self)
         self.table.setColumnCount(5)
         self.table.setHorizontalHeaderLabels(["📅 Tanggal", "📝 Keterangan Transaksi", "📥 Debet (+)", "📤 Kredit (-)", "⚖️ Sisa Hutang"])
@@ -173,11 +244,34 @@ class DetailHutangMemberDialog(QDialog):
         self.table.setAlternatingRowColors(True)
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(1, QHeaderView.Stretch)
+
+        self.table.setStyleSheet("""
+            QTableWidget { 
+                background-color: #ffffff; 
+                alternate-background-color: #f8f9fa; 
+                gridline-color: #dcdde1; 
+                font-size: 13px;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+            }
+            QHeaderView::section { 
+                background-color: #2c3e50; 
+                color: white; 
+                font-weight: bold; 
+                padding: 8px; 
+                border: 1px solid #34495e;
+            }
+            QTableWidget::item:selected {
+                background-color: #3b82f6;
+                color: white;
+            }
+        """)
+
         layout.addWidget(self.table)
-        
+
         self.btn_filter.clicked.connect(self.filter_data)
         self.btn_preview.clicked.connect(self.proses_pdf_pyqt)
-        
+
     def filter_data(self):
         tgl_m = self.date_mulai.date().toString("yyyy-MM-dd") + " 00:00:00"
         tgl_s = self.date_selesai.date().toString("yyyy-MM-dd") + " 23:59:59"
@@ -187,7 +281,7 @@ class DetailHutangMemberDialog(QDialog):
         cursor.execute("SELECT tanggal, jenis_transaksi, debet, kredit, total_hutang FROM dethut_member WHERE member_id=? AND tanggal BETWEEN ? AND ? ORDER BY tanggal ASC", (self.member_id, tgl_m, tgl_s))
         self.raw_pdf_data = cursor.fetchall() 
         conn.close()
-        
+
         for idx, (tgl, jenis, deb, kre, ttl) in enumerate(self.raw_pdf_data):
             self.table.insertRow(idx)
             self.table.setItem(idx, 0, QTableWidgetItem(str(tgl)))
@@ -239,22 +333,24 @@ class MemberWidget(QWidget):
         self.parent_window = parent_window
         self.init_ui()
         self.muat_data_dari_db()
-        
+
     def init_ui(self):
         self.setStyleSheet("background-color: #f4f6f9;")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
-        
+        layout.setSpacing(15)
+
         header_label = QLabel("💳 Manajemen Master Data Member (POS)", self)
         header_label.setFont(get_font(16, bold=True))
+        header_label.setStyleSheet("color: #2c3e50;")
         layout.addWidget(header_label)
-        
+
         kontrol_layout = QHBoxLayout()
         self.btn_tambah = QPushButton("➕ Tambah Member", self)
         self.btn_edit = QPushButton("✏️ Edit Data", self)
         self.btn_hapus = QPushButton("🗑️ Hapus Data", self)
         self.btn_detail = QPushButton("📜 Detail Kartu Hutang", self)
-        
+
         tombol_styles = {
             self.btn_tambah: "background-color: #3498db; color: white; font-weight: bold; padding: 8px 15px; border-radius: 6px;",
             self.btn_edit: "background-color: #f1c40f; color: black; font-weight: bold; padding: 8px 15px; border-radius: 6px;",
@@ -263,17 +359,20 @@ class MemberWidget(QWidget):
         }
         for btn, style in tombol_styles.items():
             btn.setStyleSheet(style)
+            btn.setCursor(Qt.PointingHandCursor)
             kontrol_layout.addWidget(btn)
-            
+
         kontrol_layout.addStretch()
         self.input_cari = QLineEdit(self)
         self.input_cari.setPlaceholderText("Ketik Nama / Kode...")
-        self.btn_cari = QPushButton("Cari", self)
+        self.input_cari.setStyleSheet("padding: 8px; border: 1px solid #dcdde1; border-radius: 4px; background: white;")
+        self.btn_cari = QPushButton("🔍 Cari", self)
+        self.btn_cari.setStyleSheet("padding: 8px 12px; background-color: #34495e; color: white; border-radius: 4px;")
         kontrol_layout.addWidget(QLabel("🔍 Cari:"))
         kontrol_layout.addWidget(self.input_cari)
         kontrol_layout.addWidget(self.btn_cari)
         layout.addLayout(kontrol_layout)
-        
+
         self.table = QTableWidget(self)
         self.table.setColumnCount(7)
         self.table.setHorizontalHeaderLabels(["ID Hidden", "🔑 Kode", "👤 Nama Member", "📍 Alamat", "📞 No. Telepon", "💰 Total Hutang", "📌 Status"])
@@ -282,11 +381,10 @@ class MemberWidget(QWidget):
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.setAlternatingRowColors(True)
         self.table.setColumnHidden(0, True)
-        
-        # FIXED: Scrollbar internal diaktifkan penuh, tanpa desak-desakan kolom
+
         self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.table.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        
+
         self.table.setStyleSheet("""
             QTableWidget { 
                 background-color: #ffffff; 
@@ -308,27 +406,26 @@ class MemberWidget(QWidget):
                 color: white;
             }
         """)
-        
-        # REQ FIXED: Mengubah semua ke Interactive agar scrollbar horizontal aktif di bawah tabel!
+
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Interactive)
-        
-        self.table.setColumnWidth(1, 90)   # Kode
-        self.table.setColumnWidth(2, 220)  # Nama Member
-        self.table.setColumnWidth(3, 260)  # Alamat (Bebas memanjang memicu scrollbar bawah)
-        self.table.setColumnWidth(4, 110)  # No. Telepon
-        self.table.setColumnWidth(5, 110)  # Total Hutang
-        self.table.setColumnWidth(6, 100)  # Status
-        
+
+        self.table.setColumnWidth(1, 90)
+        self.table.setColumnWidth(2, 220)
+        self.table.setColumnWidth(3, 260)
+        self.table.setColumnWidth(4, 110)
+        self.table.setColumnWidth(5, 110)
+        self.table.setColumnWidth(6, 100)
+
         layout.addWidget(self.table)
-        
+
         self.btn_tambah.clicked.connect(self.aksi_tambah)
         self.btn_edit.clicked.connect(self.aksi_edit)
         self.btn_hapus.clicked.connect(self.aksi_hapus)
         self.btn_detail.clicked.connect(self.aksi_detail)
         self.btn_cari.clicked.connect(self.muat_data_dari_db)
         self.input_cari.returnPressed.connect(self.muat_data_dari_db)
-        
+
     def muat_data_dari_db(self, target_highlight_id=None):
         self.table.setRowCount(0)
         keyword = self.input_cari.text().strip()
@@ -340,27 +437,27 @@ class MemberWidget(QWidget):
             cursor.execute("SELECT id, kode_member, nama_member, alamat_member, telepon_member, ttl_hutang, status_hutang FROM master_member")
         rows = cursor.fetchall()
         conn.close()
-        
+
         baris_target_idx = -1
         for idx, (id_bin, kode, nama, alamat, telp, hutang, status) in enumerate(rows):
             self.table.insertRow(idx)
             item_id = QTableWidgetItem()
             item_id.setData(Qt.UserRole, id_bin)
-            
+
             item_kode = QTableWidgetItem(str(kode))
             item_nama = QTableWidgetItem(str(nama))
             item_alamat = QTableWidgetItem(str(alamat))
             item_telp = QTableWidgetItem(str(telp))
-            
+
             item_hutang = QTableWidgetItem(f"Rp {hutang:,.0f}")
             item_hutang.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            
+
             status_sebenarnya = "BELUM LUNAS" if hutang > 0 else "LUNAS"
             item_status = QTableWidgetItem(status_sebenarnya)
             item_status.setTextAlignment(Qt.AlignCenter)
             item_status.setForeground(QColor("#e74c3c" if hutang > 0 else "#2ecc71"))
             item_status.setFont(get_font(10, bold=True))
-            
+
             self.table.setItem(idx, 0, item_id)
             self.table.setItem(idx, 1, item_kode)
             self.table.setItem(idx, 2, item_nama)
@@ -368,7 +465,7 @@ class MemberWidget(QWidget):
             self.table.setItem(idx, 4, item_telp)
             self.table.setItem(idx, 5, item_hutang)
             self.table.setItem(idx, 6, item_status)
-            
+
             if target_highlight_id and id_bin == target_highlight_id: baris_target_idx = idx
 
         if baris_target_idx != -1:

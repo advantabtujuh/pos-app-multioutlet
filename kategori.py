@@ -55,22 +55,31 @@ class FormKategoriDialog(QDialog):
         self.init_ui()
 
     def init_ui(self):
-        self.setFont(get_font(10))
-        self.setWindowTitle("✏️ Edit Kategori & Satuan" if self.data_edit else "➕ Tambah Kategori & Satuan")
-        self.resize(380, 260)
+        is_edit = self.data_edit is not None
+        self.setWindowTitle("✏️ Edit Kategori & Satuan" if is_edit else "➕ Tambah Kategori & Satuan")
         self.setModal(True)
+        self.resize(420, 380)
         self.setStyleSheet("background-color: #f4f6f9;")
+
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(25, 25, 25, 25)
+        layout.setSpacing(12)
+
         form_layout = QFormLayout()
+        form_layout.setSpacing(10)
 
         self.input_kode = QLineEdit(self)
-        self.input_nama = QLineEdit(self)
-        self.input_satuan = QLineEdit(self)
-        self.input_isi = QLineEdit(self)
         self.input_kode.setPlaceholderText("Contoh: KUD01, 101")
+        self.input_kode.setStyleSheet(self._input_style())
+        self.input_nama = QLineEdit(self)
         self.input_nama.setPlaceholderText("Contoh: Susu Sapi Segar")
+        self.input_nama.setStyleSheet(self._input_style())
+        self.input_satuan = QLineEdit(self)
         self.input_satuan.setPlaceholderText("Contoh: CTN, Lusin, Pcs")
+        self.input_satuan.setStyleSheet(self._input_style())
+        self.input_isi = QLineEdit(self)
         self.input_isi.setPlaceholderText("Contoh: 40 (Jika CTN), 12 (Jika Lusin)")
+        self.input_isi.setStyleSheet(self._input_style())
 
         form_layout.addRow("🔑 Kode Kategori:", self.input_kode)
         form_layout.addRow("📁 Nama Kategori:", self.input_nama)
@@ -81,21 +90,54 @@ class FormKategoriDialog(QDialog):
         if self.data_edit:
             self.input_kode.setText(self.data_edit['kode_kategori'])
             self.input_kode.setReadOnly(True)
+            self.input_kode.setStyleSheet(self._input_style() + "background-color: #f1f2f6;")
             self.input_nama.setText(self.data_edit['nama_kategori'])
             self.input_satuan.setText(self.data_edit['satuan'])
             self.input_isi.setText(str(self.data_edit['isi_satuan']))
 
+        layout.addStretch()
+
         btn_layout = QHBoxLayout()
         self.btn_simpan = QPushButton("💾 Simpan", self)
+        self.btn_simpan.setStyleSheet("""
+            QPushButton {
+                background-color: #2ecc71;
+                color: white;
+                font-weight: bold;
+                padding: 8px 16px;
+                border-radius: 6px;
+            }
+            QPushButton:hover { background-color: #27ae60; }
+        """)
         self.btn_batal = QPushButton("❌ Batal", self)
-        self.btn_simpan.setStyleSheet("background-color: #2ecc71; color: white; font-weight: bold; padding: 6px;")
-        self.btn_batal.setStyleSheet("background-color: #e74c3c; color: white; padding: 6px;")
+        self.btn_batal.setStyleSheet("""
+            QPushButton {
+                background-color: #e74c3c;
+                color: white;
+                padding: 8px 16px;
+                border-radius: 6px;
+            }
+            QPushButton:hover { background-color: #c0392b; }
+        """)
+        btn_layout.addStretch()
         btn_layout.addWidget(self.btn_simpan)
         btn_layout.addWidget(self.btn_batal)
         layout.addLayout(btn_layout)
 
         self.btn_simpan.clicked.connect(self.proses_simpan)
         self.btn_batal.clicked.connect(self.reject)
+
+    def _input_style(self):
+        return """
+            QLineEdit {
+                padding: 8px;
+                border: 1px solid #dcdde1;
+                border-radius: 4px;
+                background-color: white;
+                font-size: 12px;
+            }
+            QLineEdit:focus { border: 1px solid #3498db; }
+        """
 
     def proses_simpan(self):
         kode = self.input_kode.text().strip()
@@ -149,9 +191,11 @@ class KategoriSatuanWidget(QWidget):
         self.setStyleSheet("background-color: #f4f6f9;")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
+
         header_label = QLabel("📁 Manajemen Kategori & Satuan Barang", self)
         header_label.setFont(get_font(16, bold=True))
-        header_label.setStyleSheet("color: #2c3e50; margin-bottom: 10px;")
+        header_label.setStyleSheet("color: #2c3e50;")
         layout.addWidget(header_label)
 
         toolbar_layout = QHBoxLayout()
@@ -165,6 +209,7 @@ class KategoriSatuanWidget(QWidget):
         }
         for btn, style in tombol_styles.items():
             btn.setStyleSheet(style)
+            btn.setCursor(Qt.PointingHandCursor)
             toolbar_layout.addWidget(btn)
         toolbar_layout.addStretch()
         layout.addLayout(toolbar_layout)

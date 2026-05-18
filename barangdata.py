@@ -21,7 +21,7 @@ def init_barang_database():
     cursor.execute("CREATE TABLE IF NOT EXISTS master_barang (id BLOB PRIMARY KEY)")
     cursor.execute("PRAGMA table_info(master_barang)")
     kolom_master = [info[1] for info in cursor.fetchall()]
-    
+
     fields = [
         ("kode_kategori", "TEXT"), ("nama_kategori", "TEXT"), ("kode_barang", "TEXT"), ("kode_barcode", "TEXT"),
         ("nama_barang", "TEXT"), ("satuan", "TEXT"), ("isi_satuan", "INTEGER"), ("harga_beli_1", "REAL"),
@@ -44,41 +44,55 @@ class FormBarangDialog(QDialog):
         self.data_edit, self.list_kategori_data = data_edit, []
         self.init_ui()
         self.muat_kombobox_kategori()
-        
+
     def init_ui(self):
         self.setFont(get_font(9, bold=False))
         self.setWindowTitle("✏️ Edit Spesifikasi Barang" if self.data_edit else "➕ Tambah Data Barang Baru")
         self.resize(550, 450)
         self.setModal(True)
-        
+        self.setStyleSheet("background-color: #f4f6f9;")
+
         layout_mutlak = QVBoxLayout(self)
+        layout_mutlak.setContentsMargins(25, 25, 25, 25)
+        layout_mutlak.setSpacing(12)
         self.tabs = QTabWidget(self)
-        
+
         # TAB 1: DATA DASAR
         tab_dasar = QWidget()
         layout_tab1 = QFormLayout(tab_dasar)
+        layout_tab1.setSpacing(10)
         self.combo_kategori = QComboBox(self)
+        self.combo_kategori.setStyleSheet(self._combo_style())
         self.combo_kategori.currentIndexChanged.connect(self.on_kategori_changed)
         self.input_kb = QLineEdit(self)
         self.input_kb.setReadOnly(True)
-        self.input_kb.setStyleSheet("background-color: #f1f2f6; font-weight: bold;")
+        self.input_kb.setStyleSheet("background-color: #f1f2f6; font-weight: bold; padding: 8px; border: 1px solid #dcdde1; border-radius: 4px;")
         self.input_barcode, self.input_nb, self.input_satuan, self.input_isi = QLineEdit(self), QLineEdit(self), QLineEdit(self), QLineEdit(self)
+        self.input_barcode.setStyleSheet(self._input_style())
+        self.input_nb.setStyleSheet(self._input_style())
+        self.input_satuan.setStyleSheet(self._input_style())
+        self.input_isi.setStyleSheet(self._input_style())
+        self.input_barcode.setPlaceholderText("Scan atau ketik barcode")
+        self.input_nb.setPlaceholderText("Nama lengkap barang")
+        self.input_satuan.setPlaceholderText("CTN, PCS, Lusin...")
+        self.input_isi.setPlaceholderText("Jumlah isi per satuan")
         layout_tab1.addRow("📁 Pilih Kategori:", self.combo_kategori)
         layout_tab1.addRow("🔑 Kode Barang:", self.input_kb)
         layout_tab1.addRow("║║ Barcode:", self.input_barcode)
         layout_tab1.addRow("🏷️ Nama Barang:", self.input_nb)
         layout_tab1.addRow("⚖️ Satuan Unit:", self.input_satuan)
         layout_tab1.addRow("🔢 Isi Satuan (Qty):", self.input_isi)
-        
+
         # TAB 2: SKEMA HARGA & GROSIR
         tab_harga = QWidget()
         layout_tab2 = QFormLayout(tab_harga)
+        layout_tab2.setSpacing(10)
         self.input_hb1, self.input_m1, self.input_hj1 = QLineEdit(self), QLineEdit(self), QLineEdit(self)
         self.input_hb2 = QLineEdit(self)
         self.input_hb2.setReadOnly(True)
-        self.input_hb2.setStyleSheet("background-color: #f1f2f6;")
+        self.input_hb2.setStyleSheet("background-color: #f1f2f6; padding: 8px; border: 1px solid #dcdde1; border-radius: 4px;")
         self.input_m2, self.input_hj2 = QLineEdit(self), QLineEdit(self)
-        
+
         self.input_isi.textChanged.connect(self.hitung_level_2_otomatis)
         self.input_hb1.textChanged.connect(self.hitung_level_1_via_margin)
         self.input_hb1.textChanged.connect(self.hitung_level_2_otomatis)
@@ -86,7 +100,18 @@ class FormBarangDialog(QDialog):
         self.input_hj1.textChanged.connect(self.hitung_level_1_via_harga_jual)
         self.input_m2.textChanged.connect(self.hitung_level_2_via_margin)
         self.input_hj2.textChanged.connect(self.hitung_level_2_via_harga_jual)
-        
+
+        self.input_hb1.setStyleSheet(self._input_style())
+        self.input_m1.setStyleSheet(self._input_style())
+        self.input_hj1.setStyleSheet(self._input_style())
+        self.input_m2.setStyleSheet(self._input_style())
+        self.input_hj2.setStyleSheet(self._input_style())
+        self.input_hb1.setPlaceholderText("0")
+        self.input_m1.setPlaceholderText("0")
+        self.input_hj1.setPlaceholderText("0")
+        self.input_m2.setPlaceholderText("0")
+        self.input_hj2.setPlaceholderText("0")
+
         layout_tab2.addRow(QLabel("<b>[HARGA UNIT UTAMA]</b>"))
         layout_tab2.addRow("📥 Harga Beli (HB1):", self.input_hb1)
         layout_tab2.addRow("📈 Margin % (M1):", self.input_m1)
@@ -95,8 +120,14 @@ class FormBarangDialog(QDialog):
         layout_tab2.addRow("📥 Harga Beli Ecer (HB2):", self.input_hb2)
         layout_tab2.addRow("📈 Margin Ecer % (M2):", self.input_m2)
         layout_tab2.addRow("💵 Harga Jual Ecer (HJ2):", self.input_hj2)
-        
+
         self.input_qty1, self.input_hjb1, self.input_qty2, self.input_hjb2, self.input_qty3, self.input_hjb3 = QLineEdit("0", self), QLineEdit("0", self), QLineEdit("0", self), QLineEdit("0", self), QLineEdit("0", self), QLineEdit("0", self)
+        self.input_qty1.setStyleSheet(self._input_style())
+        self.input_hjb1.setStyleSheet(self._input_style())
+        self.input_qty2.setStyleSheet(self._input_style())
+        self.input_hjb2.setStyleSheet(self._input_style())
+        self.input_qty3.setStyleSheet(self._input_style())
+        self.input_hjb3.setStyleSheet(self._input_style())
         h1, h2, h3 = QHBoxLayout(), QHBoxLayout(), QHBoxLayout()
         h1.addWidget(QLabel("Min Qty 1:")); h1.addWidget(self.input_qty1); h1.addWidget(QLabel("Harga JHB1:")); h1.addWidget(self.input_hjb1)
         h2.addWidget(QLabel("Min Qty 2:")); h2.addWidget(self.input_qty2); h2.addWidget(QLabel("Harga JHB2:")); h2.addWidget(self.input_hjb2)
@@ -106,18 +137,24 @@ class FormBarangDialog(QDialog):
         # TAB 3: PROMO & STOK
         tab_promo_stok = QWidget()
         layout_tab3 = QFormLayout(tab_promo_stok)
+        layout_tab3.setSpacing(10)
         self.check_promo = QCheckBox("Aktifkan Skema Harga Promo POS", self)
         self.check_promo.toggled.connect(self.on_check_promo_toggled)
         self.date_awal, self.date_akhir = QDateEdit(QDate.currentDate(), self), QDateEdit(QDate.currentDate(), self)
         self.date_awal.setCalendarPopup(True); self.date_akhir.setCalendarPopup(True)
         self.input_hjpromo = QLineEdit("0", self)
         self.input_minstok, self.input_stok, self.input_persediaan = QLineEdit("0", self), QLineEdit("0", self), QLineEdit("0", self)
-        self.input_persediaan.setReadOnly(True); self.input_persediaan.setStyleSheet("background-color: #f1f2f6; font-weight: bold;")
+        self.input_persediaan.setReadOnly(True); self.input_persediaan.setStyleSheet("background-color: #f1f2f6; font-weight: bold; padding: 8px; border: 1px solid #dcdde1; border-radius: 4px;")
         self.input_ket = QLineEdit(self)
-        
+        self.input_hjpromo.setStyleSheet(self._input_style())
+        self.input_minstok.setStyleSheet(self._input_style())
+        self.input_stok.setStyleSheet(self._input_style())
+        self.input_ket.setStyleSheet(self._input_style())
+        self.input_ket.setPlaceholderText("Keterangan tambahan...")
+
         self.input_stok.textChanged.connect(self.hitung_nilai_persediaan_gudang)
         self.input_hb1.textChanged.connect(self.hitung_nilai_persediaan_gudang)
-        
+
         h_tgl = QHBoxLayout()
         h_tgl.addWidget(QLabel("TGL1:")); h_tgl.addWidget(self.date_awal); h_tgl.addWidget(QLabel("s/d TGL2:")); h_tgl.addWidget(self.date_akhir)
         layout_tab3.addRow(self.check_promo)
@@ -127,21 +164,64 @@ class FormBarangDialog(QDialog):
         layout_tab3.addRow("📦 Total Stok Pcs:", self.input_stok)
         layout_tab3.addRow("💎 Nilai Aset:", self.input_persediaan)
         layout_tab3.addRow("📝 Keterangan:", self.input_ket)
-        
+
         self.tabs.addTab(tab_dasar, "📁 Data Dasar")
         self.tabs.addTab(tab_harga, "💰 Harga & Grosir")
         self.tabs.addTab(tab_promo_stok, "⏳ Promo & Stok")
         layout_mutlak.addWidget(self.tabs)
-        
+
         btn_layout = QHBoxLayout()
         self.btn_simpan, self.btn_batal = QPushButton("💾 Simpan", self), QPushButton("❌ Batal", self)
-        self.btn_simpan.setStyleSheet("background-color: #2ecc71; color: white; font-weight: bold; padding: 7px;")
-        self.btn_batal.setStyleSheet("background-color: #e74c3c; color: white; padding: 7px;")
-        btn_layout.addWidget(self.btn_simpan); btn_layout.addWidget(self.btn_batal)
+        self.btn_simpan.setStyleSheet("""
+            QPushButton {
+                background-color: #2ecc71;
+                color: white;
+                font-weight: bold;
+                padding: 8px 16px;
+                border-radius: 6px;
+            }
+            QPushButton:hover { background-color: #27ae60; }
+        """)
+        self.btn_batal.setStyleSheet("""
+            QPushButton {
+                background-color: #e74c3c;
+                color: white;
+                padding: 8px 16px;
+                border-radius: 6px;
+            }
+            QPushButton:hover { background-color: #c0392b; }
+        """)
+        btn_layout.addStretch()
+        btn_layout.addWidget(self.btn_simpan)
+        btn_layout.addWidget(self.btn_batal)
         layout_mutlak.addLayout(btn_layout)
-        
+
         self.btn_simpan.clicked.connect(self.proses_simpan_barang)
         self.btn_batal.clicked.connect(self.reject)
+
+    def _input_style(self):
+        return """
+            QLineEdit {
+                padding: 8px;
+                border: 1px solid #dcdde1;
+                border-radius: 4px;
+                background-color: white;
+                font-size: 12px;
+            }
+            QLineEdit:focus { border: 1px solid #3498db; }
+        """
+
+    def _combo_style(self):
+        return """
+            QComboBox {
+                padding: 8px;
+                border: 1px solid #dcdde1;
+                border-radius: 4px;
+                background-color: white;
+                font-size: 12px;
+            }
+            QComboBox:focus { border: 1px solid #3498db; }
+        """
 
     def muat_kombobox_kategori(self):
         self.combo_kategori.blockSignals(True)
@@ -154,7 +234,7 @@ class FormBarangDialog(QDialog):
             self.list_kategori_data.append({'kode': k_kod, 'nama': k_nam, 'satuan': k_sat, 'isi': k_isi})
         conn.close()
         self.combo_kategori.blockSignals(False)
-        
+
         if self.data_edit:
             for idx, item in enumerate(self.list_kategori_data):
                 if item['kode'] == self.data_edit['kode_kategori']:
@@ -191,7 +271,7 @@ class FormBarangDialog(QDialog):
         if index < 0 or index >= len(self.list_kategori_data) or self.data_edit: return
         kat = self.list_kategori_data[index]
         self.input_satuan.setText(kat['satuan']); self.input_isi.setText(str(kat['isi']))
-        
+
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute("SELECT kode_barang FROM master_barang WHERE kode_kategori = ? ORDER BY kode_barang DESC LIMIT 1", (kat['kode'],))
@@ -267,7 +347,7 @@ class FormBarangDialog(QDialog):
             min_s, stk = int(self.input_minstok.text() or 0), int(self.input_stok.text() or 0)
             psd = hb2 * stk
         except ValueError: return
-        
+
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         if self.data_edit:
@@ -284,22 +364,24 @@ class BarangDataWidget(QWidget):
         self.parent_window = parent_window
         self.init_ui()
         self.muat_data_dari_db()
-        
+
     def init_ui(self):
         self.setStyleSheet("background-color: #f4f6f9;")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
-        
+        layout.setSpacing(15)
+
         header_label = QLabel("🏷️ Logistik Gudang: Manajemen Data Barang & Stok", self)
         header_label.setFont(get_font(16, bold=True))
+        header_label.setStyleSheet("color: #2c3e50;")
         layout.addWidget(header_label)
-        
+
         kontrol_layout = QHBoxLayout()
         self.btn_tambah = QPushButton("➕ Tambah Barang", self)
         self.btn_edit = QPushButton("✏️ Edit Barang", self)
         self.btn_hapus = QPushButton("🗑️ Hapus Barang", self)
         self.btn_cetak = QPushButton("👁️ Cetak Laporan (Landscape)", self)
-        
+
         tombol_styles = {
             self.btn_tambah: "background-color: #3498db; color: white; font-weight: bold; padding: 8px 15px; border-radius: 6px;",
             self.btn_edit: "background-color: #f1c40f; color: black; font-weight: bold; padding: 8px 15px; border-radius: 6px;",
@@ -308,20 +390,23 @@ class BarangDataWidget(QWidget):
         }
         for btn, style in tombol_styles.items():
             btn.setStyleSheet(style)
+            btn.setCursor(Qt.PointingHandCursor)
             kontrol_layout.addWidget(btn)
-            
+
         kontrol_layout.addStretch()
         self.combo_filter_stok = QComboBox(self)
         self.combo_filter_stok.addItems(["Semua Barang", "Stok Menipis (<= Min)", "Stok Kosong (=0)", "Barang Promo Aktif"])
         self.combo_filter_stok.currentIndexChanged.connect(self.muat_data_dari_db)
         self.input_cari = QLineEdit(self)
         self.input_cari.setPlaceholderText("Nama / Kode...")
-        self.btn_cari = QPushButton("Cari", self)
+        self.input_cari.setStyleSheet("padding: 8px; border: 1px solid #dcdde1; border-radius: 4px; background: white;")
+        self.btn_cari = QPushButton("🔍 Cari", self)
+        self.btn_cari.setStyleSheet("padding: 8px 12px; background-color: #34495e; color: white; border-radius: 4px;")
         kontrol_layout.addWidget(self.combo_filter_stok)
         kontrol_layout.addWidget(self.input_cari)
         kontrol_layout.addWidget(self.btn_cari)
         layout.addLayout(kontrol_layout)
-        
+
         # 11 KOLOM KASIR UTAMA (FIXED COMPACT HYBRID LOGIC)
         self.table = QTableWidget(self)
         self.table.setColumnCount(12) 
@@ -331,11 +416,11 @@ class BarangDataWidget(QWidget):
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.setAlternatingRowColors(True)
         self.table.setColumnHidden(0, True)
-        
+
         # Aktifkan Scrollbar agar interface utama main.py tidak terdorong keluar layar
         self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.table.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        
+
         self.table.setStyleSheet("""
             QTableWidget { 
                 background-color: #ffffff; 
@@ -357,11 +442,11 @@ class BarangDataWidget(QWidget):
                 color: white;
             }
         """)
-        
+
         # REQ FIXED: Mengubah semua ke Interactive agar scrollbar horizontal aktif di bawah tabel!
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Interactive)
-        
+
         self.table.setColumnWidth(1, 80)   # KB
         self.table.setColumnWidth(2, 100)  # Barcode
         self.table.setColumnWidth(3, 220)  # Nama Barang (Bebas memanjang memicu scrollbar bawah)
@@ -373,7 +458,7 @@ class BarangDataWidget(QWidget):
         self.table.setColumnWidth(9, 90)   # HJ2
         self.table.setColumnWidth(10, 75)  # STOK
         self.table.setColumnWidth(11, 75)  # PROMO
-        
+
         layout.addWidget(self.table)
         self.btn_tambah.clicked.connect(self.aksi_tambah)
         self.btn_edit.clicked.connect(self.aksi_edit)
@@ -381,7 +466,7 @@ class BarangDataWidget(QWidget):
         self.btn_cetak.clicked.connect(self.aksi_cetak_landscape)
         self.btn_cari.clicked.connect(self.muat_data_dari_db)
         self.input_cari.returnPressed.connect(self.muat_data_dari_db)
-        
+
     def muat_data_dari_db(self, target_highlight_id=None):
         self.table.setRowCount(0)
         keyword, f_stok = self.input_cari.text().strip(), self.combo_filter_stok.currentIndex()
@@ -398,7 +483,7 @@ class BarangDataWidget(QWidget):
         cursor.execute(query + " ORDER BY kode_barang ASC", p)
         self.raw_rows_data = cursor.fetchall()
         conn.close()
-        
+
         baris_target_idx = -1
         for idx, r in enumerate(self.raw_rows_data):
             self.table.insertRow(idx)
@@ -408,23 +493,23 @@ class BarangDataWidget(QWidget):
             self.table.setItem(idx, 1, QTableWidgetItem(str(r[3])))
             self.table.setItem(idx, 2, QTableWidgetItem(str(r[4])))
             self.table.setItem(idx, 3, QTableWidgetItem(str(r[5])))
-            
+
             for c_i, val in [(4, f"Rp {r[8]:,.0f}"), (6, f"Rp {r[10]:,.0f}"), (7, f"Rp {r[11]:,.0f}"), (9, f"Rp {r[13]:,.0f}")]:
                 it = QTableWidgetItem(val); it.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter); self.table.setItem(idx, c_i, it)
-                
+
             for c_i, val in [(5, f"{r[9]:.1f}%"), (8, f"{r[12]:.1f}%")]:
                 it = QTableWidgetItem(val); it.setTextAlignment(Qt.AlignCenter); self.table.setItem(idx, c_i, it)
-                
+
             item_stok = QTableWidgetItem(str(r[25])); item_stok.setTextAlignment(Qt.AlignCenter)
             if r[25] <= r[24]:
                 item_stok.setForeground(QColor("#e74c3c")); item_stok.setFont(get_font(10, bold=True))
             self.table.setItem(idx, 10, item_stok)
-            
+
             item_promo = QTableWidgetItem(str(r[20])); item_promo.setTextAlignment(Qt.AlignCenter)
             if r[20] == "YES":
                 item_promo.setForeground(QColor("#2ecc71")); item_promo.setFont(get_font(10, bold=True))
             self.table.setItem(idx, 11, item_promo)
-            
+
             if target_highlight_id and r[0] == target_highlight_id: baris_target_idx = idx
         if baris_target_idx != -1: self.table.setCurrentCell(baris_target_idx, 3)
 
@@ -477,7 +562,7 @@ class BarangDataWidget(QWidget):
             style_s = "class='text-center text-danger'" if r[25] <= r[24] else "class='text-center'"
             html_content += f"<tr><td>{r[3]}</td><td>{r[4]}</td><td>{r[5]}</td><td>{r[2]}</td><td class='text-center'>{r[6]}</td><td class='text-center'>{r[7]}</td><td class='text-right'>Rp {r[8]:,.0f}</td><td class='text-right'>Rp {r[10]:,.0f}</td><td {style_s}>{r[25]}</td><td class='text-center'>{r[20]}</td></tr>"
         html_content += "</tbody></table></body></html>"
-        
+
         self.pdf_document = QTextDocument()
         self.pdf_document.setHtml(html_content)
         from PyQt5.QtPrintSupport import QPrintPreviewDialog

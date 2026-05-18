@@ -149,20 +149,28 @@ class FormPembelianDialog(QDialog):
         hdr_lay = QGridLayout(hdr); hdr_lay.setContentsMargins(15, 12, 15, 12); hdr_lay.setSpacing(8)
 
         self.inp_no_faktur   = QLineEdit(); self.inp_no_faktur.setReadOnly(True)
-        self.inp_no_faktur.setStyleSheet("background:#f1f2f6; font-weight:bold;")
+        self.inp_no_faktur.setStyleSheet("background:#f1f2f6; font-weight:bold; padding: 8px; border: 1px solid #dcdde1; border-radius: 4px;")
         self.inp_no_supp     = QLineEdit(); self.inp_no_supp.setPlaceholderText("No. faktur dari supplier")
+        self.inp_no_supp.setStyleSheet(self._input_style())
         self.combo_supplier  = QComboBox(); self.combo_supplier.setEditable(True)
         self.combo_supplier.setInsertPolicy(QComboBox.NoInsert)
+        self.combo_supplier.setStyleSheet(self._combo_style())
         self.combo_supplier.currentIndexChanged.connect(self._on_supplier_changed)
         self.inp_tgl         = QDateEdit(); self.inp_tgl.setCalendarPopup(True)
+        self.inp_tgl.setStyleSheet(self._date_style())
         self.inp_jt          = QDateEdit(); self.inp_jt.setCalendarPopup(True)
         self.inp_jt.setEnabled(False)
+        self.inp_jt.setStyleSheet(self._date_style())
         self.combo_bayar     = QComboBox(); self.combo_bayar.addItems(["CASH", "TEMPO"])
+        self.combo_bayar.setStyleSheet(self._combo_style())
         self.combo_bayar.currentTextChanged.connect(self._on_bayar_changed)
         self.inp_diskon      = QDoubleSpinBox(); self.inp_diskon.setRange(0, 999999999); self.inp_diskon.setGroupSeparatorShown(True)
+        self.inp_diskon.setStyleSheet(self._spin_style())
         self.inp_ppn         = QDoubleSpinBox(); self.inp_ppn.setRange(0, 100); self.inp_ppn.setSuffix(" %")
+        self.inp_ppn.setStyleSheet(self._spin_style())
         self.chk_ppn_inc     = QCheckBox("Harga sudah termasuk PPN")
         self.inp_ket         = QLineEdit(); self.inp_ket.setPlaceholderText("Keterangan opsional")
+        self.inp_ket.setStyleSheet(self._input_style())
         self.inp_diskon.valueChanged.connect(self._hitung_total)
         self.inp_ppn.valueChanged.connect(self._hitung_total)
 
@@ -187,9 +195,19 @@ class FormPembelianDialog(QDialog):
         # ── SEARCH BARANG ──
         src_lay = QHBoxLayout()
         self.inp_search = QLineEdit(); self.inp_search.setPlaceholderText("🔍 Ketik kode / nama / barcode → Enter untuk tambah item")
-        self.inp_search.setStyleSheet("padding:8px; border:2px solid #3498db; border-radius:6px; font-size:13px;")
+        self.inp_search.setStyleSheet("padding:8px; border:2px solid #3498db; border-radius:6px; font-size:13px; background: white;")
         self.inp_search.returnPressed.connect(self._search_and_add)
-        btn_add = QPushButton("➕ Add Item"); btn_add.setStyleSheet("background:#3498db; color:white; padding:8px 15px; border-radius:6px; font-weight:bold;")
+        btn_add = QPushButton("➕ Add Item"); 
+        btn_add.setStyleSheet("""
+            QPushButton {
+                background-color: #3498db;
+                color: white;
+                padding: 8px 15px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+            QPushButton:hover { background-color: #2980b9; }
+        """)
         btn_add.clicked.connect(self._search_and_add)
         src_lay.addWidget(QLabel("Cari Barang:")); src_lay.addWidget(self.inp_search, 1); src_lay.addWidget(btn_add)
         root.addLayout(src_lay)
@@ -213,9 +231,25 @@ class FormPembelianDialog(QDialog):
         self.tbl.setColumnWidth(8, 100); self.tbl.setColumnWidth(9, 70)
         self.tbl.setColumnWidth(10, 110); self.tbl.setColumnWidth(11, 60)
         self.tbl.setStyleSheet("""
-            QTableWidget{background:#fff;alternate-background-color:#f8f9fa;gridline-color:#dcdde1;font-size:12px;border:1px solid #e2e8f0;border-radius:6px;}
-            QHeaderView::section{background:#2c3e50;color:white;font-weight:bold;padding:6px;border:1px solid #34495e;}
-            QTableWidget::item:selected{background:#3b82f6;color:white;}
+            QTableWidget {
+                background-color: #ffffff;
+                alternate-background-color: #f8f9fa;
+                gridline-color: #dcdde1;
+                font-size: 12px;
+                border: 1px solid #e2e8f0;
+                border-radius: 6px;
+            }
+            QHeaderView::section {
+                background-color: #2c3e50;
+                color: white;
+                font-weight: bold;
+                padding: 6px;
+                border: 1px solid #34495e;
+            }
+            QTableWidget::item:selected {
+                background-color: #3b82f6;
+                color: white;
+            }
         """)
         root.addWidget(self.tbl, 1)
 
@@ -236,13 +270,79 @@ class FormPembelianDialog(QDialog):
         btn_lay = QHBoxLayout()
         btn_lay.addStretch()
         self.btn_simpan = QPushButton("💾 Simpan Faktur")
-        self.btn_simpan.setStyleSheet("background:#2ecc71;color:white;font-weight:bold;padding:10px 25px;border-radius:6px;font-size:13px;")
+        self.btn_simpan.setStyleSheet("""
+            QPushButton {
+                background-color: #2ecc71;
+                color: white;
+                font-weight: bold;
+                padding: 10px 25px;
+                border-radius: 6px;
+                font-size: 13px;
+            }
+            QPushButton:hover { background-color: #27ae60; }
+        """)
         self.btn_simpan.clicked.connect(self._simpan)
         btn_batal = QPushButton("❌ Batal")
-        btn_batal.setStyleSheet("background:#e74c3c;color:white;padding:10px 20px;border-radius:6px;")
+        btn_batal.setStyleSheet("""
+            QPushButton {
+                background-color: #e74c3c;
+                color: white;
+                padding: 10px 20px;
+                border-radius: 6px;
+            }
+            QPushButton:hover { background-color: #c0392b; }
+        """)
         btn_batal.clicked.connect(self.reject)
         btn_lay.addWidget(self.btn_simpan); btn_lay.addWidget(btn_batal)
         root.addLayout(btn_lay)
+
+    def _input_style(self):
+        return """
+            QLineEdit {
+                padding: 8px;
+                border: 1px solid #dcdde1;
+                border-radius: 4px;
+                background-color: white;
+                font-size: 12px;
+            }
+            QLineEdit:focus { border: 1px solid #3498db; }
+        """
+
+    def _combo_style(self):
+        return """
+            QComboBox {
+                padding: 8px;
+                border: 1px solid #dcdde1;
+                border-radius: 4px;
+                background-color: white;
+                font-size: 12px;
+            }
+            QComboBox:focus { border: 1px solid #3498db; }
+        """
+
+    def _date_style(self):
+        return """
+            QDateEdit {
+                padding: 8px;
+                border: 1px solid #dcdde1;
+                border-radius: 4px;
+                background-color: white;
+                font-size: 12px;
+            }
+            QDateEdit:focus { border: 1px solid #3498db; }
+        """
+
+    def _spin_style(self):
+        return """
+            QDoubleSpinBox, QSpinBox {
+                padding: 8px;
+                border: 1px solid #dcdde1;
+                border-radius: 4px;
+                background-color: white;
+                font-size: 12px;
+            }
+            QDoubleSpinBox:focus, QSpinBox:focus { border: 1px solid #3498db; }
+        """
 
     # ── LOAD SUPPLIERS ──
     def _load_suppliers(self):
@@ -450,11 +550,34 @@ class _PilihBarangDialog(QDialog):
         self.selected = None
         self.setWindowTitle("Pilih Barang"); self.resize(650, 350); self.setModal(True)
         lay = QVBoxLayout(self)
+        lay.setContentsMargins(15, 15, 15, 15)
+        lay.setSpacing(12)
         tbl = QTableWidget(len(rows), 5)
         tbl.setHorizontalHeaderLabels(["Kode", "Barcode", "Nama Barang", "Satuan", "Stok"])
         tbl.setSelectionBehavior(QAbstractItemView.SelectRows)
         tbl.setEditTriggers(QAbstractItemView.NoEditTriggers)
         tbl.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        tbl.setStyleSheet("""
+            QTableWidget {
+                background-color: #ffffff;
+                alternate-background-color: #f8f9fa;
+                gridline-color: #dcdde1;
+                font-size: 12px;
+                border: 1px solid #e2e8f0;
+                border-radius: 6px;
+            }
+            QHeaderView::section {
+                background-color: #2c3e50;
+                color: white;
+                font-weight: bold;
+                padding: 6px;
+                border: 1px solid #34495e;
+            }
+            QTableWidget::item:selected {
+                background-color: #3b82f6;
+                color: white;
+            }
+        """)
         for i, r in enumerate(rows):
             r = dict(r)
             for j, v in enumerate([r['kode_barang'], r['kode_barcode'], r['nama_barang'], r['satuan'], str(r['stok_isi'])]):
@@ -462,7 +585,18 @@ class _PilihBarangDialog(QDialog):
             tbl.item(i, 0).setData(Qt.UserRole, r)
         tbl.doubleClicked.connect(lambda idx: self._pick(tbl, idx.row()))
         lay.addWidget(tbl)
-        btn = QPushButton("✅ Pilih"); btn.clicked.connect(lambda: self._pick(tbl, tbl.currentRow()))
+        btn = QPushButton("✅ Pilih"); 
+        btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2ecc71;
+                color: white;
+                font-weight: bold;
+                padding: 8px 20px;
+                border-radius: 6px;
+            }
+            QPushButton:hover { background-color: #27ae60; }
+        """)
+        btn.clicked.connect(lambda: self._pick(tbl, tbl.currentRow()))
         lay.addWidget(btn)
         self._tbl = tbl
 
@@ -481,12 +615,14 @@ class _InputQtyHargaDialog(QDialog):
         self.barang = barang
         self.result_item = None
         self.setWindowTitle(f"Input Qty & Harga — {barang['nama_barang']}")
-        self.resize(420, 340); self.setModal(True)
+        self.resize(420, 380); self.setModal(True)
         self.setStyleSheet("background:#f4f6f9;")
         self._build()
 
     def _build(self):
         lay = QVBoxLayout(self)
+        lay.setContentsMargins(25, 25, 25, 25)
+        lay.setSpacing(12)
         info = QLabel(f"📦 <b>{self.barang['nama_barang']}</b> | {self.barang['kode_barang']} | Stok: {self.barang['stok_isi']} Pcs")
         info.setStyleSheet("background:#3498db;color:white;padding:8px;border-radius:6px;")
         lay.addWidget(info)
@@ -495,12 +631,16 @@ class _InputQtyHargaDialog(QDialog):
         isi = self.barang['isi_satuan'] or 1
 
         self.sp_qty_sat  = QSpinBox(); self.sp_qty_sat.setRange(0, 999999)
+        self.sp_qty_sat.setStyleSheet(self._spin_style())
         self.sp_qty_ecer = QSpinBox(); self.sp_qty_ecer.setRange(0, 999999)
+        self.sp_qty_ecer.setStyleSheet(self._spin_style())
         self.lbl_total   = QLabel("= 0 Pcs"); self.lbl_total.setStyleSheet("font-weight:bold; color:#2ecc71;")
         self.sp_hrg_sat  = QDoubleSpinBox(); self.sp_hrg_sat.setRange(0, 999999999); self.sp_hrg_sat.setGroupSeparatorShown(True)
         self.sp_hrg_sat.setValue(self.barang['harga_beli_1'])
+        self.sp_hrg_sat.setStyleSheet(self._spin_style())
         self.lbl_hrg_pcs = QLabel(_fmt_rp(self.barang['harga_beli_2'])); self.lbl_hrg_pcs.setStyleSheet("color:#e67e22; font-weight:bold;")
         self.sp_diskon   = QDoubleSpinBox(); self.sp_diskon.setRange(0, 100); self.sp_diskon.setSuffix(" %")
+        self.sp_diskon.setStyleSheet(self._spin_style())
         self.lbl_subtotal = QLabel("Subtotal: Rp 0"); self.lbl_subtotal.setStyleSheet("font-weight:bold; color:#2c3e50; font-size:13px;")
 
         self.sp_qty_sat.valueChanged.connect(self._hitung)
@@ -518,12 +658,43 @@ class _InputQtyHargaDialog(QDialog):
         lay.addLayout(frm)
 
         bl = QHBoxLayout(); bl.addStretch()
-        ok = QPushButton("✅ Tambah Item"); ok.setStyleSheet("background:#2ecc71;color:white;font-weight:bold;padding:8px 20px;border-radius:6px;")
+        ok = QPushButton("✅ Tambah Item"); 
+        ok.setStyleSheet("""
+            QPushButton {
+                background-color: #2ecc71;
+                color: white;
+                font-weight: bold;
+                padding: 8px 20px;
+                border-radius: 6px;
+            }
+            QPushButton:hover { background-color: #27ae60; }
+        """)
         ok.clicked.connect(self._ok)
-        batal = QPushButton("❌ Batal"); batal.setStyleSheet("background:#e74c3c;color:white;padding:8px 15px;border-radius:6px;")
+        batal = QPushButton("❌ Batal"); 
+        batal.setStyleSheet("""
+            QPushButton {
+                background-color: #e74c3c;
+                color: white;
+                padding: 8px 15px;
+                border-radius: 6px;
+            }
+            QPushButton:hover { background-color: #c0392b; }
+        """)
         batal.clicked.connect(self.reject)
         bl.addWidget(ok); bl.addWidget(batal)
         lay.addLayout(bl)
+
+    def _spin_style(self):
+        return """
+            QDoubleSpinBox, QSpinBox {
+                padding: 8px;
+                border: 1px solid #dcdde1;
+                border-radius: 4px;
+                background-color: white;
+                font-size: 12px;
+            }
+            QDoubleSpinBox:focus, QSpinBox:focus { border: 1px solid #3498db; }
+        """
 
     def _hitung(self):
         isi     = self.barang['isi_satuan'] or 1
@@ -585,6 +756,7 @@ class PembelianWidget(QWidget):
         # Header
         hdr = QLabel("🛒 Manajemen Pembelian Barang — Faktur & Stok")
         hdr.setFont(get_font(15, bold=True))
+        hdr.setStyleSheet("color: #2c3e50;")
         root.addWidget(hdr)
 
         # Toolbar
@@ -610,8 +782,8 @@ class PembelianWidget(QWidget):
         self.combo_filter.addItems(["Semua", "DRAFT", "POSTED"])
         self.combo_filter.currentIndexChanged.connect(self.muat_data_dari_db)
         self.inp_cari = QLineEdit(); self.inp_cari.setPlaceholderText("Cari no.faktur / supplier...")
-        self.inp_cari.setStyleSheet("padding:7px;border:1px solid #dcdde1;border-radius:4px;background:white;")
-        btn_cari = QPushButton("🔍"); btn_cari.setStyleSheet("padding:7px 12px;background:#34495e;color:white;border-radius:4px;")
+        self.inp_cari.setStyleSheet("padding:8px;border:1px solid #dcdde1;border-radius:4px;background:white;")
+        btn_cari = QPushButton("🔍 Cari"); btn_cari.setStyleSheet("padding:8px 12px;background:#34495e;color:white;border-radius:4px;")
         btn_cari.clicked.connect(self.muat_data_dari_db)
         self.inp_cari.returnPressed.connect(self.muat_data_dari_db)
         tb.addWidget(QLabel("Filter:")); tb.addWidget(self.combo_filter)
